@@ -58,7 +58,6 @@ st.markdown("""
 
 @st.cache_resource
 def initialize_components():
-    """Initialize and cache the RAG components"""
     try:
         # Initialize local embeddings (free, runs on your computer)
         embedding_model = HuggingFaceEmbeddings(
@@ -93,21 +92,6 @@ def initialize_components():
         return None, None, 0
 
 def get_relevant_context(user_query, vectorstore):
-    """
-    Retrieve the most relevant document(s) from the ChromaDB vector store 
-    based on the user's question.
-
-    This function uses semantic similarity (vector search) to find which document 
-    is closest in meaning to the user's query. The returned content will be passed 
-    into the prompt for the LLM.
-
-    Args:
-        user_query (str): The user's question or prompt.
-
-    Returns:
-        str: Combined content of the most relevant documents (limited for speed).
-    """
-    
     retriever = vectorstore.as_retriever(search_kwargs={"k": 2})  # Only get top 2 results for speed
     relevant_docs = retriever.invoke(user_query)
     # Limit context to 2000 characters for faster processing
@@ -115,20 +99,6 @@ def get_relevant_context(user_query, vectorstore):
     return context[:2000]
 
 def get_instruction(question, vectorstore):
-    """
-    Build a prompt for Gemini using PMO assistant instructions
-    and the relevant context from vector search.
-
-    This prompt is designed to guide the LLM to stay factual, 
-    avoid hallucination, and answer within the scope of the retrieved documents.
-
-    Args:
-        question (str): The employee's question.
-
-    Returns:
-        str: The full prompt to be passed to Gemini.
-    """
-
     text_context = get_relevant_context(question, vectorstore)
     prompt = f"""
     1. You are a capable math tutor who explains calculus concepts and solves problems step by step.
@@ -156,16 +126,6 @@ def get_instruction(question, vectorstore):
     return prompt
 
 def generate_response(prompt, model_name):
-    """
-    Generate a response using Ollama local LLM.
-    
-    Args:
-        prompt (str): The full prompt including context and question.
-        model_name (str): Name of the Ollama model to use.
-    
-    Returns:
-        str: The generated response text.
-    """
     try:
         response = ollama.chat(
             model=model_name,
@@ -182,10 +142,6 @@ def generate_response(prompt, model_name):
         return f"Error: {str(e)}. Make sure Ollama is running and you have the model installed."
 
 def dynamic_loading_screen(loading_messages, initialize_func):
-    """
-    Display a dynamic loading screen that cycles through different messages
-    while running the initialization function.
-    """
     import random
     
     # Create placeholders for the loading interface
