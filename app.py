@@ -9,7 +9,11 @@ import streamlit as st
 
 import rag
 
-MODEL_NAME = "llama3.2"
+# qwen2.5:7b is markedly more reliable on the actual mathematics than the
+# smaller llama3.2, which produced confidently wrong derivatives. It is also
+# verbose, so it needs a generous token budget to reach its final answer.
+MODEL_NAME = "qwen2.5:7b"
+MAX_TOKENS = 1400
 HISTORY_TURNS = 6
 
 SAMPLE_QUESTIONS = [
@@ -52,13 +56,19 @@ def load_index():
 def check_ollama() -> str | None:
     """Return an error message if Ollama is not usable, otherwise None."""
     try:
-        installed = {m.model.split(":")[0] for m in ollama.list().models}
+        installed = {m.model for m in ollama.list().models}
     except Exception:
         return (
             "Could not reach the Ollama server. Start it with `ollama serve`, "
             "then reload this page."
         )
-    if MODEL_NAME not in installed:
+    # An untagged name matches any tag; a tagged name must match exactly.
+    matches = (
+        MODEL_NAME in installed
+        or (":" not in MODEL_NAME
+            and any(n.split(":")[0] == MODEL_NAME for n in installed))
+    )
+    if not matches:
         return f"Model `{MODEL_NAME}` is not installed. Run `ollama pull {MODEL_NAME}`."
     return None
 
@@ -69,7 +79,7 @@ def stream_answer(messages):
         model=MODEL_NAME,
         messages=messages,
         stream=True,
-        options={"temperature": 0.3, "num_predict": 800, "top_p": 0.9},
+        options={"temperature": 0.3, "num_predict": MAX_TOKENS, "top_p": 0.9},
     ):
         yield part["message"]["content"]
 

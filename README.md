@@ -12,7 +12,7 @@ the answer came from.
 | Layer | Choice |
 |---|---|
 | Interface | Streamlit (streaming chat) |
-| Generation | Llama 3.2 via [Ollama](https://ollama.com) |
+| Generation | Qwen2.5 7B via [Ollama](https://ollama.com) |
 | Embeddings | `all-MiniLM-L6-v2` (sentence-transformers, CPU) |
 | Vector store | Chroma, persisted to `.chroma/` |
 | PDF parsing | PyMuPDF via LangChain's `PyMuPDFLoader` |
