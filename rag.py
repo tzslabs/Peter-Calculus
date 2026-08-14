@@ -18,7 +18,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 SOURCES_DIR = Path("sources")
 INDEX_DIR = Path(".chroma")
-FINGERPRINT_FILE = INDEX_DIR / "fingerprint.json"
 
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 CHUNK_SIZE = 1000
@@ -75,11 +74,14 @@ def split_pages(
 
 def fingerprint(sources_dir: Path = SOURCES_DIR, **params) -> str:
     """Hash the corpus and chunking params so the index rebuilds when they change."""
-    parts = [
-        f"{p.name}:{p.stat().st_size}" for p in sorted(sources_dir.glob("*.pdf"))
-    ]
-    parts.append(json.dumps(params, sort_keys=True))
-    return hashlib.sha256("|".join(parts).encode()).hexdigest()[:16]
+    digest = hashlib.sha256()
+    digest.update(json.dumps(params, sort_keys=True).encode())
+    for pdf_path in sorted(sources_dir.glob("*.pdf")):
+        digest.update(pdf_path.name.encode())
+        with pdf_path.open("rb") as pdf:
+            for block in iter(lambda: pdf.read(1024 * 1024), b""):
+                digest.update(block)
+    return digest.hexdigest()[:16]
 
 
 def get_embeddings() -> HuggingFaceEmbeddings:
@@ -113,10 +115,11 @@ def build_index(
         chunk_overlap=chunk_overlap,
         embedding=EMBEDDING_MODEL,
     )
+    fingerprint_file = index_dir / "fingerprint.json"
     embeddings = get_embeddings()
 
-    if not force and FINGERPRINT_FILE.exists():
-        cached = json.loads(FINGERPRINT_FILE.read_text())
+    if not force and fingerprint_file.exists():
+        cached = json.loads(fingerprint_file.read_text())
         if cached.get("fingerprint") == current:
             store = Chroma(
                 persist_directory=str(index_dir),
@@ -142,8 +145,8 @@ def build_index(
         "chunk_size": chunk_size,
         "chunk_overlap": chunk_overlap,
     }
-    INDEX_DIR.mkdir(parents=True, exist_ok=True)
-    FINGERPRINT_FILE.write_text(
+    index_dir.mkdir(parents=True, exist_ok=True)
+    fingerprint_file.write_text(
         json.dumps({"fingerprint": current, "stats": stats}, indent=2)
     )
     return store, stats

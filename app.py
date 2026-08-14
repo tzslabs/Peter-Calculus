@@ -309,7 +309,7 @@ def main():
         # passages out of the prompt leaves more room for the actual solution.
         history = [
             {"role": m["role"], "content": m["content"]}
-            for m in st.session_state.messages[:-1][-HISTORY_TURNS:]
+            for m in st.session_state.messages[:-1][-(HISTORY_TURNS * 2):]
         ]
         messages = [
             {"role": "system", "content": rag.SYSTEM_PROMPT},
