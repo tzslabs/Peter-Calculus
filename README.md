@@ -8,6 +8,8 @@ Technology: Python · Streamlit · Ollama · LangChain · Chroma
 
 ---
 
+![DeltaBot interface showing a sourced calculus answer](delta-demo.png)
+
 ## Overview
 
 I wanted to make a calculus chatbot that does more than generate an answer from
@@ -51,7 +53,7 @@ Download the OpenStax calculus books and run the app:
 
 ```bash
 python fetch_sources.py
-streamlit run app.py
+python -m streamlit run app.py --server.fileWatcherType none
 ```
 
 The first launch takes a few minutes to build the index. Later launches reuse the
