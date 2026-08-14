@@ -1,7 +1,7 @@
-"""Retrieval pipeline for Peter Calculus.
+"""Retrieval pipeline for DeltaBot.
 
-This module deliberately has no Streamlit imports so the ingestion and
-retrieval logic can be run from scripts and evaluated without the UI.
+The retrieval code stays separate from Streamlit so it is also useful from
+scripts and tests.
 """
 
 from __future__ import annotations
@@ -35,6 +35,8 @@ Guidelines:
   so plainly instead of inventing a result.
 - Format all mathematics as LaTeX: $...$ for inline, $$...$$ for display.
   For example $\\int f(x)\\,dx$, $\\frac{dy}{dx}$, $\\lim_{x \\to a} f(x)$.
+- Never put LaTeX inside a Markdown code block. Do not use bare square brackets
+  or plain-text approximations for equations.
 """
 
 
@@ -47,7 +49,7 @@ def load_pages(sources_dir: Path = SOURCES_DIR) -> list[Document]:
     pages: list[Document] = []
     for pdf_path in sorted(sources_dir.glob("*.pdf")):
         for page in PyMuPDFLoader(str(pdf_path)).load():
-            # PyMuPDF pages are 0-indexed; store a 1-indexed label for display.
+            # PDF page numbers start at zero here, so save the number people see.
             page.metadata["source_name"] = pdf_path.stem
             page.metadata["page_label"] = page.metadata.get("page", 0) + 1
             pages.append(page)
@@ -67,7 +69,7 @@ def split_pages(
         length_function=len,
     )
     chunks = splitter.split_documents(pages)
-    # Drop chunks that are whitespace or a stray page number.
+    # A few textbook pages produce only a page number or a blank fragment.
     return [c for c in chunks if len(c.page_content.strip()) > 40]
 
 
@@ -125,7 +127,7 @@ def build_index(
     pages = load_pages(sources_dir)
     chunks = split_pages(pages, chunk_size, chunk_overlap)
 
-    # Rebuild from scratch so stale vectors from a previous corpus never linger.
+    # Starting fresh prevents passages from removed PDFs hanging around.
     store = Chroma(
         persist_directory=str(index_dir),
         embedding_function=embeddings,

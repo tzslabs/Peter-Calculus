@@ -1,4 +1,4 @@
-"""Download the OpenStax Calculus volumes into sources/.
+"""Download the OpenStax calculus books used by DeltaBot.
 
 The PDFs are ~170 MB total, so they are gitignored rather than committed.
 OpenStax Calculus is CC BY-NC-SA 4.0: https://openstax.org/details/books/calculus-volume-1
